@@ -1,18 +1,18 @@
 package v1
 
-import "github.com/gin-gonic/gin"
+import "net/http"
 
-func (h *Handler) createPost(c *gin.Context) {
+func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 }
 
-func (h *Handler) getAllPosts(c *gin.Context) {
+func (h *Handler) getAllPosts(w http.ResponseWriter, r *http.Request) {
 }
 
-func (h *Handler) getPostById(c *gin.Context) {
+func (h *Handler) getPostById(w http.ResponseWriter, r *http.Request) {
 }
 
-func (h *Handler) updatePost(c *gin.Context) {
+func (h *Handler) updatePost(w http.ResponseWriter, r *http.Request) {
 }
 
-func (h *Handler) deletePost(c *gin.Context) {
+func (h *Handler) deletePost(w http.ResponseWriter, r *http.Request) {
 }

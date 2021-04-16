@@ -1,9 +1,11 @@
 package v1
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+)
 
-func (h *Handler) signIn(c *gin.Context) {
+func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 }
 
-func (h *Handler) signUp(c *gin.Context) {
+func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
 }
