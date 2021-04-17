@@ -1,73 +1,72 @@
 package dao
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/osetr/app/internal/domain"
 	"github.com/osetr/app/pkg/database"
 )
 
-type postDAO struct {
+type userDAO struct {
 }
 
-func (*postDAO) Save(p *domain.Post) (*domain.Post, error) {
+func (*userDAO) Save(p *domain.User) (*domain.User, error) {
 	db, err := new(database.СonnectionFactory).GetConnection()
 	if err != nil {
 		log.Fatalf("Error occured while connecting to database: %v", err)
 	} else {
-		domain.CreatePostTable(db)
+		domain.CreateUserTable(db)
 	}
 
 	_, insertError := db.Model(p).Insert()
 	if insertError != nil {
-		fmt.Printf("Error occured while inserting data: %v", insertError)
+		log.Fatalf("Error occured while inserting data: %v", insertError)
 		return p, insertError
 	}
 
 	return p, nil
 }
 
-func (*postDAO) GetSinglePost(id int) (*domain.Post, error) {
+func (*userDAO) GetSingleUser(id int) (*domain.User, error) {
 	db, err := new(database.СonnectionFactory).GetConnection()
 	if err != nil {
 		log.Fatalf("Error occured while connecting to database: %v", err)
 	} else {
-		domain.CreatePostTable(db)
+		domain.CreateUserTable(db)
 	}
 
-	post := &domain.Post{Id: id}
-	err = db.Model(post).WherePK().Select()
+	user := &domain.User{Id: id}
+	err = db.Model(user).WherePK().Select()
 	if err != nil {
 		panic(err)
 	}
 
-	return post, nil
+	return user, nil
 }
 
-func (*postDAO) GetAllPosts() ([]domain.Post, error) {
+func (*userDAO) GetAllUsers() ([]domain.User, error) {
 	db, err := new(database.СonnectionFactory).GetConnection()
 	if err != nil {
 		log.Fatalf("Error occured while connecting to database: %v", err)
 	} else {
-		domain.CreatePostTable(db)
+		domain.CreateUserTable(db)
 	}
 
-	var posts []domain.Post
-	err = db.Model(&posts).Select()
+	var users []domain.User
+	err = db.Model(&users).Select()
 	if err != nil {
 		panic(err)
 	}
 
-	return posts, nil
+	return users, nil
 }
 
-func (*postDAO) UpdatePost(p *domain.Post) (*domain.Post, error) {
+func (*userDAO) UpdateUser(p *domain.User) (*domain.User, error) {
 	db, err := new(database.СonnectionFactory).GetConnection()
 	if err != nil {
 		log.Fatalf("Error occured while connecting to database: %v", err)
 	} else {
-		domain.CreatePostTable(db)
+		domain.CreateUserTable(db)
 	}
 
 	_, err = db.Model(p).WherePK().Update()
@@ -78,16 +77,16 @@ func (*postDAO) UpdatePost(p *domain.Post) (*domain.Post, error) {
 	return p, nil
 }
 
-func (*postDAO) DeletePost(id int) error {
+func (*userDAO) DeleteUser(id int) error {
 	db, err := new(database.СonnectionFactory).GetConnection()
 	if err != nil {
 		log.Fatalf("Error occured while connecting to database: %v", err)
 	} else {
-		domain.CreatePostTable(db)
+		domain.CreateUserTable(db)
 	}
 
-	post := &domain.Post{Id: id}
-	_, err = db.Model(post).WherePK().Delete()
+	user := &domain.User{Id: id}
+	_, err = db.Model(user).WherePK().Delete()
 	if err != nil {
 		panic(err)
 	}
@@ -95,6 +94,6 @@ func (*postDAO) DeletePost(id int) error {
 	return nil
 }
 
-func NewPostDAO() IPostDAO {
-	return &postDAO{}
+func NewUserDAO() IUserDAO {
+	return &userDAO{}
 }

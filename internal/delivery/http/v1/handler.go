@@ -2,15 +2,9 @@ package v1
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/osetr/app/internal/service"
 )
 
 type Handler struct {
-	services *service.Service
-}
-
-func NewHandler(services *service.Service) *Handler {
-	return &Handler{services: services}
 }
 
 func (h *Handler) InitRoute() *mux.Router {
@@ -26,4 +20,8 @@ func (h *Handler) InitRoute() *mux.Router {
 	router.HandleFunc("/api/v1/posts/{id}", h.deletePost).Methods("DELETE")
 
 	return router
+}
+
+func NewHandler() *Handler {
+	return &Handler{}
 }

@@ -2,7 +2,12 @@ package dao
 
 import "github.com/osetr/app/internal/domain"
 
-type IAuthorizationDAO interface {
+type IUserDAO interface {
+	Save(*domain.User) (*domain.User, error)
+	GetSingleUser(id int) (*domain.User, error)
+	GetAllUsers() ([]domain.User, error)
+	UpdateUser(*domain.User) (*domain.User, error)
+	DeleteUser(id int) error
 }
 
 type IPostDAO interface {
@@ -14,10 +19,13 @@ type IPostDAO interface {
 }
 
 type DAO struct {
-	IAuthorizationDAO
-	IPostDAO
+	postDAO IPostDAO
+	userDao IUserDAO
 }
 
 func NewDAO() *DAO {
-	return &DAO{}
+	return &DAO{
+		postDAO: NewPostDAO(),
+		userDao: NewUserDAO(),
+	}
 }

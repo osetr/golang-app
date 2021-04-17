@@ -9,10 +9,10 @@ import (
 )
 
 type Post struct {
-	Id          int       `pg:"id"`
-	Title       string    `pg:"title,unique"`
-	Description string    `pg:"description"`
-	CreatedDate time.Time `pg:"created_date"`
+	Id          int       `pg:"id" json:"id"`
+	Title       string    `pg:"title,unique" json:"title"`
+	Description string    `pg:"description" json:"description"`
+	CreatedDate time.Time `pg:"created_date" json:"createDate"`
 }
 
 func CreatePostTable(db *pg.DB) error {
