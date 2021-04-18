@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"log"
 	"runtime"
 	"time"
 
@@ -39,8 +38,6 @@ func (conFact *СonnectionFactory) GetConnection() (*pg.DB, error) {
 	if err := db.Ping(ctx); err != nil {
 		panic(err)
 	}
-
-	log.Println("Successfuly connected to database")
 
 	return db, nil
 }

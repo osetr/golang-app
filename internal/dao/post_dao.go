@@ -1,100 +1,67 @@
 package dao
 
 import (
-	"fmt"
-	"log"
-
+	"github.com/go-pg/pg/v10"
 	"github.com/osetr/app/internal/domain"
-	"github.com/osetr/app/pkg/database"
 )
 
-type postDAO struct {
+type PostDAO struct {
 }
 
-func (*postDAO) Save(p *domain.Post) (*domain.Post, error) {
-	db, err := new(database.СonnectionFactory).GetConnection()
+func (*PostDAO) Save(p *domain.Post, db *pg.DB) (*domain.Post, error) {
+	_, err := db.Model(p).Insert()
 	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreatePostTable(db)
-	}
-
-	_, insertError := db.Model(p).Insert()
-	if insertError != nil {
-		fmt.Printf("Error occured while inserting data: %v", insertError)
-		return p, insertError
+		return &domain.Post{}, err
 	}
 
 	return p, nil
 }
 
-func (*postDAO) GetSinglePost(id int) (*domain.Post, error) {
-	db, err := new(database.СonnectionFactory).GetConnection()
-	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreatePostTable(db)
-	}
-
+func (*PostDAO) GetSinglePost(id int, db *pg.DB) (*domain.Post, error) {
 	post := &domain.Post{Id: id}
-	err = db.Model(post).WherePK().Select()
+	err := db.Model(post).WherePK().Select()
 	if err != nil {
-		panic(err)
+		return &domain.Post{}, err
 	}
 
 	return post, nil
 }
 
-func (*postDAO) GetAllPosts() ([]domain.Post, error) {
-	db, err := new(database.СonnectionFactory).GetConnection()
-	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreatePostTable(db)
-	}
-
+func (*PostDAO) GetAllPosts(db *pg.DB) ([]domain.Post, error) {
 	var posts []domain.Post
-	err = db.Model(&posts).Select()
+	err := db.Model(&posts).Select()
 	if err != nil {
-		panic(err)
+		return []domain.Post{}, err
 	}
 
 	return posts, nil
 }
 
-func (*postDAO) UpdatePost(p *domain.Post) (*domain.Post, error) {
-	db, err := new(database.СonnectionFactory).GetConnection()
-	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreatePostTable(db)
+func (*PostDAO) UpdatePost(p *domain.Post, db *pg.DB) (*domain.Post, error) {
+	res, err := db.Model(p).WherePK().Update()
+	if res.RowsAffected() == 0 {
+		return &domain.Post{}, pg.ErrNoRows
 	}
-
-	_, err = db.Model(p).WherePK().Update()
 	if err != nil {
-		panic(err)
+		return &domain.Post{}, err
 	}
 
 	return p, nil
 }
 
-func (*postDAO) DeletePost(id int) error {
-	db, err := new(database.СonnectionFactory).GetConnection()
-	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreatePostTable(db)
-	}
-
+func (*PostDAO) DeletePost(id int, db *pg.DB) error {
 	post := &domain.Post{Id: id}
-	_, err = db.Model(post).WherePK().Delete()
+	res, err := db.Model(post).WherePK().Delete()
+	if res.RowsAffected() == 0 {
+		return pg.ErrNoRows
+	}
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return nil
 }
 
 func NewPostDAO() IPostDAO {
-	return &postDAO{}
+	return &PostDAO{}
 }

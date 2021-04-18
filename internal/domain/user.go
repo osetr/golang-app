@@ -8,10 +8,10 @@ import (
 )
 
 type User struct {
-	Id       int    `pg:"id"`
-	Name     string `pg:"name,unique"`
-	Email    string `pg:"email,unique"`
-	Password string `pg:"password"`
+	Id       int    `pg:"id" json:"id"`
+	Name     string `pg:"name,unique" json:"name"`
+	Email    string `pg:"email,unique" json:"email"`
+	Password string `pg:"password" json:"password"`
 }
 
 func CreateUserTable(db *pg.DB) error {

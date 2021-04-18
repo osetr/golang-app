@@ -10,14 +10,19 @@ type Handler struct {
 func (h *Handler) InitRoute() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/api/v1/sign-in", h.signIn).Methods("POST")
-	router.HandleFunc("/api/v1/sign-up", h.signUp).Methods("POST")
+	v1 := router.PathPrefix("/api/v1").Subrouter()
 
-	router.HandleFunc("/api/v1/posts", h.createPost).Methods("POST")
-	router.HandleFunc("/api/v1/posts", h.getAllPosts).Methods("GET")
-	router.HandleFunc("/api/v1/posts/{id}", h.getPostById).Methods("GET")
-	router.HandleFunc("/api/v1/posts/{id}", h.updatePost).Methods("PUT")
-	router.HandleFunc("/api/v1/posts/{id}", h.deletePost).Methods("DELETE")
+	v1.HandleFunc("/sign-in", h.signIn).Methods("POST")
+	v1.HandleFunc("/sign-up", h.signUp).Methods("POST")
+
+	posts := v1.PathPrefix("/posts").Subrouter()
+	posts.Use(AuthMiddlware)
+
+	posts.HandleFunc("", h.createPost).Methods("POST")
+	posts.HandleFunc("", h.getAllPosts).Methods("GET")
+	posts.HandleFunc("/{id}", h.getPostById).Methods("GET")
+	posts.HandleFunc("/{id}", h.updatePost).Methods("PUT")
+	posts.HandleFunc("/{id}", h.deletePost).Methods("DELETE")
 
 	return router
 }

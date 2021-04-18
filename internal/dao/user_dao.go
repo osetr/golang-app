@@ -1,99 +1,76 @@
 package dao
 
 import (
-	"log"
-
+	"github.com/go-pg/pg/v10"
 	"github.com/osetr/app/internal/domain"
-	"github.com/osetr/app/pkg/database"
 )
 
-type userDAO struct {
+type UserDAO struct {
 }
 
-func (*userDAO) Save(p *domain.User) (*domain.User, error) {
-	db, err := new(database.СonnectionFactory).GetConnection()
+func (*UserDAO) Save(p *domain.User, db *pg.DB) (*domain.User, error) {
+	_, err := db.Model(p).Insert()
 	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreateUserTable(db)
-	}
-
-	_, insertError := db.Model(p).Insert()
-	if insertError != nil {
-		log.Fatalf("Error occured while inserting data: %v", insertError)
-		return p, insertError
+		return &domain.User{}, err
 	}
 
 	return p, nil
 }
 
-func (*userDAO) GetSingleUser(id int) (*domain.User, error) {
-	db, err := new(database.СonnectionFactory).GetConnection()
-	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreateUserTable(db)
-	}
-
+func (*UserDAO) GetSingleUser(id int, db *pg.DB) (*domain.User, error) {
 	user := &domain.User{Id: id}
-	err = db.Model(user).WherePK().Select()
+	err := db.Model(user).WherePK().Select()
 	if err != nil {
-		panic(err)
+		return &domain.User{}, err
 	}
 
 	return user, nil
 }
 
-func (*userDAO) GetAllUsers() ([]domain.User, error) {
-	db, err := new(database.СonnectionFactory).GetConnection()
-	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreateUserTable(db)
-	}
-
+func (*UserDAO) GetAllUsers(db *pg.DB) ([]domain.User, error) {
 	var users []domain.User
-	err = db.Model(&users).Select()
+	err := db.Model(&users).Select()
 	if err != nil {
-		panic(err)
+		return []domain.User{}, err
 	}
 
 	return users, nil
 }
 
-func (*userDAO) UpdateUser(p *domain.User) (*domain.User, error) {
-	db, err := new(database.СonnectionFactory).GetConnection()
-	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreateUserTable(db)
+func (*UserDAO) UpdateUser(p *domain.User, db *pg.DB) (*domain.User, error) {
+	res, err := db.Model(p).WherePK().Update()
+	if res.RowsAffected() == 0 {
+		return &domain.User{}, pg.ErrNoRows
 	}
-
-	_, err = db.Model(p).WherePK().Update()
 	if err != nil {
-		panic(err)
+		return &domain.User{}, err
 	}
 
 	return p, nil
 }
 
-func (*userDAO) DeleteUser(id int) error {
-	db, err := new(database.СonnectionFactory).GetConnection()
-	if err != nil {
-		log.Fatalf("Error occured while connecting to database: %v", err)
-	} else {
-		domain.CreateUserTable(db)
-	}
-
+func (*UserDAO) DeleteUser(id int, db *pg.DB) error {
 	user := &domain.User{Id: id}
-	_, err = db.Model(user).WherePK().Delete()
+	res, err := db.Model(user).WherePK().Delete()
+	if res.RowsAffected() == 0 {
+		return pg.ErrNoRows
+	}
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return nil
 }
 
+func (*UserDAO) SignInUser(email, password string, db *pg.DB) (*domain.User, error) {
+	user := &domain.User{}
+	err := db.Model(user).
+		Where("email = ?", email).
+		Where("password = ?", password).
+		Select()
+	return user, err
+}
+
 func NewUserDAO() IUserDAO {
-	return &userDAO{}
+	return &UserDAO{}
 }
