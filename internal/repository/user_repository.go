@@ -5,39 +5,45 @@ import (
 	"github.com/osetr/app/internal/domain"
 )
 
+type IUserRepository interface {
+	Save(*domain.User) (*domain.User, error)
+	GetSingleUser(int) (*domain.User, error)
+	GetAllUsers() ([]domain.User, error)
+	UpdateUser(*domain.User) (*domain.User, error)
+	DeleteUser(int) error
+	SignInUser(string, string) (*domain.User, error)
+}
+
 type UserRepository struct {
+	userDAO dao.IUserDAO
 }
 
-func (*UserRepository) Save(p *domain.User) (*domain.User, error) {
-	dao := dao.NewDAO()
-	return dao.UserDAO.Save(p, dao.DB)
+func NewUserRepository(userDAO dao.IUserDAO) IUserRepository {
+	return &UserRepository{
+		userDAO: userDAO,
+	}
 }
 
-func (*UserRepository) GetSingleUser(id int) (*domain.User, error) {
-	dao := dao.NewDAO()
-	return dao.UserDAO.GetSingleUser(id, dao.DB)
+func (us *UserRepository) Save(p *domain.User) (*domain.User, error) {
+	return us.userDAO.Save(p)
 }
 
-func (*UserRepository) GetAllUsers() ([]domain.User, error) {
-	dao := dao.NewDAO()
-	return dao.UserDAO.GetAllUsers(dao.DB)
+func (us *UserRepository) GetSingleUser(id int) (*domain.User, error) {
+	return us.userDAO.GetSingleUser(id)
 }
 
-func (*UserRepository) UpdateUser(p *domain.User) (*domain.User, error) {
-	dao := dao.NewDAO()
-	return dao.UserDAO.UpdateUser(p, dao.DB)
+func (us *UserRepository) GetAllUsers() ([]domain.User, error) {
+	return us.userDAO.GetAllUsers()
 }
 
-func (*UserRepository) DeleteUser(id int) error {
-	dao := dao.NewDAO()
-	return dao.UserDAO.DeleteUser(id, dao.DB)
+func (us *UserRepository) UpdateUser(p *domain.User) (*domain.User, error) {
+	return us.userDAO.UpdateUser(p)
 }
 
-func (*UserRepository) SignInUser(email, password string) (*domain.User, error) {
-	dao := dao.NewDAO()
-	return dao.UserDAO.SignInUser(email, password, dao.DB)
+func (us *UserRepository) DeleteUser(id int) error {
+	return us.userDAO.DeleteUser(id)
 }
 
-func NewUserRepository() IUserRepository {
-	return &UserRepository{}
+func (us *UserRepository) SignInUser(email, password string) (*domain.User, error) {
+	return us.userDAO.SignInUser(email, password)
 }

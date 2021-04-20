@@ -6,28 +6,34 @@ import (
 	"time"
 
 	"github.com/go-pg/pg/v10"
-	"github.com/osetr/app/configs"
-	"github.com/spf13/viper"
 )
+
+type IСonnectionFactory interface {
+	GetConnection() (*pg.DB, error)
+}
 
 type СonnectionFactory struct {
 	addr     string
 	user     string
-	password string
+	pass     string
 	database string
 }
 
+func NewConnectionFactory(addr string, user string, pass string, database string) IСonnectionFactory {
+	return &СonnectionFactory{
+		addr:     addr,
+		user:     user,
+		pass:     pass,
+		database: database,
+	}
+}
+
 func (conFact *СonnectionFactory) GetConnection() (*pg.DB, error) {
-	configs.GetConfig("config")
-	conFact.addr = viper.GetString("db.addr")
-	conFact.user = viper.GetString("db.user")
-	conFact.password = viper.GetString("db.password")
-	conFact.database = viper.GetString("db.database")
 
 	db := pg.Connect(&pg.Options{
 		Addr:        ":" + conFact.addr,
 		User:        conFact.user,
-		Password:    conFact.password,
+		Password:    conFact.pass,
 		Database:    conFact.database,
 		PoolSize:    5 * runtime.NumCPU(),
 		PoolTimeout: 30 * time.Second,

@@ -7,18 +7,42 @@ import (
 	"github.com/osetr/app/internal/repository"
 )
 
-type PostCreateService struct {
-	Input struct {
-		Title       string `json:"title,omitempty"`
-		Description string `json:"description,omitempty"`
+// Post service implementation
+type IPostService interface {
+	PostCreate(postCreateInput) (*domain.Post, error)
+	GetPostCreateInput() postCreateInput
+	PostList() ([]domain.Post, error)
+	PostGet(int) (*domain.Post, error)
+	GetPostUpdateInput() postUpdateInput
+	PostUpdate(int, postUpdateInput) (*domain.Post, error)
+	PostDelete(int) error
+}
+
+type PostService struct {
+	postRepo repository.IPostRepository
+}
+
+func NewPostService(postRepo repository.IPostRepository) IPostService {
+	return &PostService{
+		postRepo: postRepo,
 	}
 }
 
-func (s *PostCreateService) Validate() (bool, map[string]interface{}) {
+// Post create functionality
+func (*PostService) GetPostCreateInput() postCreateInput {
+	return postCreateInput{}
+}
+
+type postCreateInput struct {
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+func (i *postCreateInput) Validate() (map[string]interface{}, bool) {
 	message := make(map[string]interface{})
-	i := s.Input
 	valid := true
 
+	// TODO: make valid validation
 	if ul := len(i.Title); ul >= 36 || ul <= 2 {
 		message["title"] = []string{"this field must have length in range (2,36)"}
 		valid = false
@@ -28,65 +52,55 @@ func (s *PostCreateService) Validate() (bool, map[string]interface{}) {
 		valid = false
 	}
 
-	return valid, message
+	return message, valid
 }
 
-func (s *PostCreateService) Execute() (*domain.Post, error) {
-	if valid, _ := s.Validate(); !valid {
+func (ps *PostService) PostCreate(i postCreateInput) (*domain.Post, error) {
+	if _, valid := i.Validate(); !valid {
 		panic("First you need validate input")
 	}
 
-	postRepo := repository.NewRepository().PostRepository
+	postRepo := ps.postRepo
 	p, err := postRepo.Save(&domain.Post{
-		Title:       s.Input.Title,
-		Description: s.Input.Description,
+		Title:       i.Title,
+		Description: i.Description,
 		CreatedDate: time.Now(),
 	})
 
 	return p, err
 }
 
-type PostListService struct {
-}
-
-func (s *PostListService) Execute() ([]domain.Post, error) {
-	postRepo := repository.NewRepository().PostRepository
+// Post list functionality
+func (ps *PostService) PostList() ([]domain.Post, error) {
+	postRepo := ps.postRepo
 	p, err := postRepo.GetAllPosts()
 
 	return p, err
 }
 
-type PostGetService struct {
-}
-
-func (s *PostGetService) Execute(id int) (*domain.Post, error) {
-	postRepo := repository.NewRepository().PostRepository
+// Post get by id functionality
+func (ps *PostService) PostGet(id int) (*domain.Post, error) {
+	postRepo := ps.postRepo
 	p, err := postRepo.GetSinglePost(id)
 
 	return p, err
 }
 
-type PostDeleteService struct {
+// Post update functionality
+func (ps *PostService) GetPostUpdateInput() postUpdateInput {
+	return postUpdateInput{}
 }
 
-func (s *PostDeleteService) Execute(id int) error {
-	postRepo := repository.NewRepository().PostRepository
-	err := postRepo.DeletePost(id)
-	return err
+type postUpdateInput struct {
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
-type PostUpdateService struct {
-	Input struct {
-		Title       string `json:"title,omitempty"`
-		Description string `json:"description,omitempty"`
-	}
-}
-
-func (s *PostUpdateService) Validate() (bool, map[string]interface{}) {
+func (i *postUpdateInput) Validate() (map[string]interface{}, bool) {
 	message := make(map[string]interface{})
-	i := s.Input
 	valid := true
 
+	// TODO: make valid validation
 	if ul := len(i.Title); ul >= 36 || ul <= 2 {
 		message["title"] = []string{"this field must have length in range (2,36)"}
 		valid = false
@@ -96,20 +110,27 @@ func (s *PostUpdateService) Validate() (bool, map[string]interface{}) {
 		valid = false
 	}
 
-	return valid, message
+	return message, valid
 }
 
-func (s *PostUpdateService) Execute(id int) (*domain.Post, error) {
-	if valid, _ := s.Validate(); !valid {
+func (ps *PostService) PostUpdate(id int, i postUpdateInput) (*domain.Post, error) {
+	if _, valid := i.Validate(); !valid {
 		panic("First you need validate input")
 	}
 
-	postRepo := repository.NewRepository().PostRepository
+	postRepo := ps.postRepo
 	p, err := postRepo.UpdatePost(&domain.Post{
 		Id:          id,
-		Title:       s.Input.Title,
-		Description: s.Input.Description,
+		Title:       i.Title,
+		Description: i.Description,
 	})
 
 	return p, err
+}
+
+// Post delete by id functionality
+func (ps *PostService) PostDelete(id int) error {
+	postRepo := ps.postRepo
+	err := postRepo.DeletePost(id)
+	return err
 }

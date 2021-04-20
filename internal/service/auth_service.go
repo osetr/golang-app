@@ -1,33 +1,52 @@
 package service
 
 import (
-	"errors"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/osetr/app/internal/domain"
 	"github.com/osetr/app/internal/repository"
 	"github.com/osetr/app/pkg/auth"
 )
 
 const (
-	signatureKey = "secret"
-	tokenTTL     = 12 * time.Hour
+	secretKey = "secret"
+	tokenTTL  = 12 * time.Hour
 )
 
-type SignUpService struct {
-	Input struct {
-		Name     string `json:"name,omitempty"`
-		Email    string `json:"email,omitempty"`
-		Password string `json:"password,omitempty"`
+// Auth service implementation
+type IAuthService interface {
+	GetSignUpInput() signUpInput
+	SignUp(signUpInput) (map[string]interface{}, error)
+	GetSignInInput() signInInput
+	SignIn(signInInput) (map[string]interface{}, error)
+}
+
+type AuthService struct {
+	userRepo repository.IUserRepository
+}
+
+func NewAuthService(userRepo repository.IUserRepository) IAuthService {
+	return &AuthService{
+		userRepo: userRepo,
 	}
 }
 
-func (s *SignUpService) Validate() (bool, map[string]interface{}) {
+// Sign-up functionality
+func (*AuthService) GetSignUpInput() signUpInput {
+	return signUpInput{}
+}
+
+type signUpInput struct {
+	Name     string `json:"name,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+func (i signUpInput) Validate() (map[string]interface{}, bool) {
 	message := make(map[string]interface{})
-	i := s.Input
 	valid := true
 
+	// TODO: make valid validation
 	if ul := len(i.Name); ul >= 36 || ul <= 2 {
 		message["name"] = []string{"this field must have length in range (2,36)"}
 		valid = false
@@ -43,36 +62,39 @@ func (s *SignUpService) Validate() (bool, map[string]interface{}) {
 		valid = false
 	}
 
-	return valid, message
+	return message, valid
 }
 
-func (s *SignUpService) Execute() (map[string]interface{}, error) {
-	if valid, _ := s.Validate(); !valid {
+func (as *AuthService) SignUp(i signUpInput) (map[string]interface{}, error) {
+	if _, valid := i.Validate(); !valid {
 		panic("First you need validate input")
 	}
 
-	postRepo := repository.NewRepository().UserRepository
+	postRepo := as.userRepo
 	p, err := postRepo.Save(&domain.User{
-		Name:     s.Input.Name,
-		Email:    s.Input.Email,
-		Password: auth.GeneratePasswordHash(s.Input.Password),
+		Name:     i.Name,
+		Email:    i.Email,
+		Password: auth.GeneratePasswordHash(i.Password),
 	})
 
 	return map[string]interface{}{"id": p.Id, "name": p.Name, "email": p.Email}, err
 }
 
-type SignInService struct {
-	Input struct {
-		Email    string `json:"email,omitempty"`
-		Password string `json:"password,omitempty"`
-	}
+// Sign-in functionality
+func (as *AuthService) GetSignInInput() signInInput {
+	return signInInput{}
 }
 
-func (s *SignInService) Validate() (bool, map[string]interface{}) {
+type signInInput struct {
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+func (i signInInput) Validate() (map[string]interface{}, bool) {
 	message := make(map[string]interface{})
-	i := s.Input
 	valid := true
 
+	// TODO: make valid validation
 	if ul := len(i.Email); ul >= 36 || ul <= 2 {
 		message["email"] = []string{"this field must have length in range (2,36)"}
 		valid = false
@@ -83,44 +105,12 @@ func (s *SignInService) Validate() (bool, map[string]interface{}) {
 		valid = false
 	}
 
-	return valid, message
+	return message, valid
 }
 
-func (s *SignInService) Execute() (map[string]interface{}, error) {
-	userRepo := repository.NewRepository().UserRepository
-	u, _ := userRepo.SignInUser(s.Input.Email, auth.GeneratePasswordHash(s.Input.Password))
-
-	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
-			IssuedAt:  time.Now().Unix(),
-		},
-		u.Id,
-	})
-	token, err := claims.SignedString([]byte(signatureKey))
+func (as *AuthService) SignIn(i signInInput) (map[string]interface{}, error) {
+	userRepo := as.userRepo
+	u, _ := userRepo.SignInUser(i.Email, auth.GeneratePasswordHash(i.Password))
+	token, err := auth.NewJWTToken(u.Id, secretKey, tokenTTL)
 	return map[string]interface{}{"accessToken": token}, err
-}
-
-type tokenClaims struct {
-	jwt.StandardClaims
-	UserId int `json:"id"`
-}
-
-func ParseToken(accessToken string) (int, error) {
-	token, err := jwt.ParseWithClaims(accessToken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("invalid signing method")
-		}
-		return []byte(signatureKey), nil
-	})
-
-	if err != nil {
-		return 0, err
-	}
-	claims, ok := token.Claims.(*tokenClaims)
-	if !ok {
-		return 0, errors.New("bad claims type")
-	}
-
-	return claims.UserId, nil
 }

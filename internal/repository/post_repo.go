@@ -5,34 +5,40 @@ import (
 	"github.com/osetr/app/internal/domain"
 )
 
+type IPostRepository interface {
+	Save(*domain.Post) (*domain.Post, error)
+	GetSinglePost(int) (*domain.Post, error)
+	GetAllPosts() ([]domain.Post, error)
+	UpdatePost(*domain.Post) (*domain.Post, error)
+	DeletePost(int) error
+}
+
 type PostRepository struct {
+	postDAO dao.IPostDAO
 }
 
-func (*PostRepository) Save(p *domain.Post) (*domain.Post, error) {
-	dao := dao.NewDAO()
-	return dao.PostDAO.Save(p, dao.DB)
+func NewPostRepository(postDAO dao.IPostDAO) IPostRepository {
+	return &PostRepository{
+		postDAO: postDAO,
+	}
 }
 
-func (*PostRepository) GetSinglePost(id int) (*domain.Post, error) {
-	dao := dao.NewDAO()
-	return dao.PostDAO.GetSinglePost(id, dao.DB)
+func (ps *PostRepository) Save(p *domain.Post) (*domain.Post, error) {
+	return ps.postDAO.Save(p)
 }
 
-func (*PostRepository) GetAllPosts() ([]domain.Post, error) {
-	dao := dao.NewDAO()
-	return dao.PostDAO.GetAllPosts(dao.DB)
+func (ps *PostRepository) GetSinglePost(id int) (*domain.Post, error) {
+	return ps.postDAO.GetSinglePost(id)
 }
 
-func (*PostRepository) UpdatePost(p *domain.Post) (*domain.Post, error) {
-	dao := dao.NewDAO()
-	return dao.PostDAO.UpdatePost(p, dao.DB)
+func (ps *PostRepository) GetAllPosts() ([]domain.Post, error) {
+	return ps.postDAO.GetAllPosts()
 }
 
-func (*PostRepository) DeletePost(id int) error {
-	dao := dao.NewDAO()
-	return dao.PostDAO.DeletePost(id, dao.DB)
+func (ps *PostRepository) UpdatePost(p *domain.Post) (*domain.Post, error) {
+	return ps.postDAO.UpdatePost(p)
 }
 
-func NewPostRepository() IPostRepository {
-	return &PostRepository{}
+func (ps *PostRepository) DeletePost(id int) error {
+	return ps.postDAO.DeletePost(id)
 }

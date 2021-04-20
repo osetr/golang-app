@@ -7,29 +7,48 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/osetr/app/internal/dao"
 	"github.com/osetr/app/internal/service"
+	"github.com/osetr/app/pkg/adapter"
 )
 
-func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	postCreateService := service.PostCreateService{}
+type IPostHandler interface {
+	createPost(w http.ResponseWriter, r *http.Request)
+	getAllPosts(w http.ResponseWriter, r *http.Request)
+	getPostById(w http.ResponseWriter, r *http.Request)
+	updatePost(w http.ResponseWriter, r *http.Request)
+	deletePost(w http.ResponseWriter, r *http.Request)
+}
 
-	if err := json.NewDecoder(r.Body).Decode(&postCreateService.Input); err != nil {
+type PostHandler struct {
+	postService service.IPostService
+}
+
+func NewPostHandler(postService service.IPostService) IPostHandler {
+	return &PostHandler{
+		postService: postService,
+	}
+}
+
+func (h *PostHandler) createPost(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	postService := h.postService
+	postCreateInput := postService.GetPostCreateInput()
+
+	if err := json.NewDecoder(r.Body).Decode(&postCreateInput); err != nil {
 		result, _ := json.Marshal(map[string]interface{}{"detail": err.Error()})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(result)
 		return
 	}
 
-	if valid, message := postCreateService.Validate(); !valid {
+	if message, valid := postCreateInput.Validate(); !valid {
 		result, _ := json.Marshal(map[string]interface{}{"detail": message})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(result)
 		return
 	}
 
-	if res, err := postCreateService.Execute(); err != nil {
+	if res, err := postService.PostCreate(postCreateInput); err != nil {
 		result, _ := json.Marshal(map[string]interface{}{"detail": err.Error()})
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		w.Write(result)
@@ -44,11 +63,11 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) getAllPosts(w http.ResponseWriter, r *http.Request) {
+func (h *PostHandler) getAllPosts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	postListService := service.PostListService{}
+	postService := h.postService
 
-	if res, err := postListService.Execute(); err != nil {
+	if res, err := postService.PostList(); err != nil {
 		result, _ := json.Marshal(map[string]interface{}{"detail": err.Error()})
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		w.Write(result)
@@ -66,9 +85,9 @@ func (h *Handler) getAllPosts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) getPostById(w http.ResponseWriter, r *http.Request) {
+func (h *PostHandler) getPostById(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	postGetService := service.PostGetService{}
+	postService := h.postService
 	id_param := mux.Vars(r)["id"]
 
 	id, err := strconv.ParseInt(id_param, 10, 64)
@@ -78,8 +97,8 @@ func (h *Handler) getPostById(w http.ResponseWriter, r *http.Request) {
 		w.Write(result)
 		return
 	}
-	if res, err := postGetService.Execute(int(id)); err != nil {
-		httpAdapter := dao.NewDAO().HttpExcAdapter
+	if res, err := postService.PostGet(int(id)); err != nil {
+		httpAdapter := adapter.NewHttpExcAdapter()
 		_, stMess, stCode := httpAdapter.Transform(err)
 		result, _ := json.Marshal(map[string]interface{}{"detail": stMess})
 		w.WriteHeader(stCode)
@@ -95,9 +114,10 @@ func (h *Handler) getPostById(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) updatePost(w http.ResponseWriter, r *http.Request) {
+func (h *PostHandler) updatePost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	postUpdateService := service.PostUpdateService{}
+	postService := h.postService
+	postUpdateInput := postService.GetPostUpdateInput()
 	id_param := mux.Vars(r)["id"]
 
 	id, err := strconv.ParseInt(id_param, 10, 64)
@@ -108,22 +128,22 @@ func (h *Handler) updatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&postUpdateService.Input); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&postUpdateInput); err != nil {
 		result, _ := json.Marshal(map[string]interface{}{"detail": err.Error()})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(result)
 		return
 	}
 
-	if valid, message := postUpdateService.Validate(); !valid {
+	if message, valid := postUpdateInput.Validate(); !valid {
 		result, _ := json.Marshal(map[string]interface{}{"detail": message})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(result)
 		return
 	}
 
-	if res, err := postUpdateService.Execute(int(id)); err != nil {
-		httpAdapter := dao.NewDAO().HttpExcAdapter
+	if res, err := postService.PostUpdate(int(id), postUpdateInput); err != nil {
+		httpAdapter := adapter.NewHttpExcAdapter()
 		_, stMess, stCode := httpAdapter.Transform(err)
 		result, _ := json.Marshal(map[string]interface{}{"detail": stMess})
 		w.WriteHeader(stCode)
@@ -139,9 +159,9 @@ func (h *Handler) updatePost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) deletePost(w http.ResponseWriter, r *http.Request) {
+func (h *PostHandler) deletePost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	postDeleteService := service.PostDeleteService{}
+	postService := h.postService
 	id_param := mux.Vars(r)["id"]
 
 	id, err := strconv.ParseInt(id_param, 10, 64)
@@ -151,8 +171,8 @@ func (h *Handler) deletePost(w http.ResponseWriter, r *http.Request) {
 		w.Write(result)
 		return
 	}
-	if err := postDeleteService.Execute(int(id)); err != nil {
-		httpAdapter := dao.NewDAO().HttpExcAdapter
+	if err := postService.PostDelete(int(id)); err != nil {
+		httpAdapter := adapter.NewHttpExcAdapter()
 		_, stMess, stCode := httpAdapter.Transform(err)
 		result, _ := json.Marshal(map[string]interface{}{"detail": stMess})
 		w.WriteHeader(stCode)

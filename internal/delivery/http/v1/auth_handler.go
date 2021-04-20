@@ -5,30 +5,46 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/osetr/app/internal/dao"
 	"github.com/osetr/app/internal/service"
+	"github.com/osetr/app/pkg/adapter"
 )
 
-func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	signInService := service.SignInService{}
+type IAuthHandler interface {
+	signIn(w http.ResponseWriter, r *http.Request)
+	signUp(w http.ResponseWriter, r *http.Request)
+}
 
-	if err := json.NewDecoder(r.Body).Decode(&signInService.Input); err != nil {
+type AuthHandler struct {
+	authService service.IAuthService
+}
+
+func NewAuthHandler(authService service.IAuthService) IAuthHandler {
+	return &AuthHandler{
+		authService: authService,
+	}
+}
+
+func (h *AuthHandler) signIn(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	authService := h.authService
+	signInInput := authService.GetSignInInput()
+
+	if err := json.NewDecoder(r.Body).Decode(&signInInput); err != nil {
 		result, _ := json.Marshal(map[string]interface{}{"detail": err.Error()})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(result)
 		return
 	}
 
-	if valid, message := signInService.Validate(); !valid {
+	if message, valid := signInInput.Validate(); !valid {
 		result, _ := json.Marshal(map[string]interface{}{"detail": message})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(result)
 		return
 	}
 
-	if res, err := signInService.Execute(); err != nil {
-		httpAdapter := dao.NewDAO().HttpExcAdapter
+	if res, err := authService.SignIn(signInInput); err != nil {
+		httpAdapter := adapter.NewHttpExcAdapter()
 		_, stMess, stCode := httpAdapter.Transform(err)
 		result, _ := json.Marshal(map[string]interface{}{"detail": stMess})
 		w.WriteHeader(stCode)
@@ -44,25 +60,26 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) signUp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	signUpService := service.SignUpService{}
+	authService := h.authService
+	signUpInput := authService.GetSignUpInput()
 
-	if err := json.NewDecoder(r.Body).Decode(&signUpService.Input); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&signUpInput); err != nil {
 		result, _ := json.Marshal(map[string]interface{}{"detail": err.Error()})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(result)
 		return
 	}
 
-	if valid, message := signUpService.Validate(); !valid {
+	if message, valid := signUpInput.Validate(); !valid {
 		result, _ := json.Marshal(map[string]interface{}{"detail": message})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(result)
 		return
 	}
 
-	if res, err := signUpService.Execute(); err != nil {
+	if res, err := authService.SignUp(signUpInput); err != nil {
 		result, _ := json.Marshal(map[string]interface{}{"detail": err.Error()})
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		w.Write(result)

@@ -1,10 +1,11 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/osetr/app/internal/service"
+	"github.com/osetr/app/pkg/auth"
 )
 
 func AuthMiddlware(next http.Handler) http.Handler {
@@ -17,13 +18,14 @@ func AuthMiddlware(next http.Handler) http.Handler {
 			return
 		}
 		tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
-		id, err := service.ParseToken(tokenString)
+		// TODO: secret should be hided
+		id, err := auth.ParseToken(tokenString, "secret")
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte("Error verifying JWT token: " + err.Error()))
 			return
 		}
-		r.Header.Set("userId", string(id))
+		r.Header.Set("userId", fmt.Sprint(id))
 		next.ServeHTTP(w, r)
 	})
 }
