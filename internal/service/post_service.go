@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"time"
 
 	"github.com/osetr/app/internal/domain"
@@ -9,12 +10,12 @@ import (
 
 // Post service implementation
 type IPostService interface {
-	PostCreate(postCreateInput) (*domain.Post, error)
-	GetPostCreateInput() postCreateInput
+	PostCreate(PostCreateInput) (*domain.Post, error)
+	GetPostCreateInput() PostCreateInput
 	PostList() ([]domain.Post, error)
 	PostGet(int) (*domain.Post, error)
-	GetPostUpdateInput() postUpdateInput
-	PostUpdate(int, postUpdateInput) (*domain.Post, error)
+	GetPostUpdateInput() PostUpdateInput
+	PostUpdate(int, PostUpdateInput) (*domain.Post, error)
 	PostDelete(int) error
 }
 
@@ -29,16 +30,16 @@ func NewPostService(postRepo repository.IPostRepository) IPostService {
 }
 
 // Post create functionality
-func (*PostService) GetPostCreateInput() postCreateInput {
-	return postCreateInput{}
+func (*PostService) GetPostCreateInput() PostCreateInput {
+	return PostCreateInput{}
 }
 
-type postCreateInput struct {
+type PostCreateInput struct {
 	Title       string `json:"title,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
-func (i *postCreateInput) Validate() (map[string]interface{}, bool) {
+func (i *PostCreateInput) Validate() (map[string]interface{}, bool) {
 	message := make(map[string]interface{})
 	valid := true
 
@@ -55,9 +56,9 @@ func (i *postCreateInput) Validate() (map[string]interface{}, bool) {
 	return message, valid
 }
 
-func (ps *PostService) PostCreate(i postCreateInput) (*domain.Post, error) {
+func (ps *PostService) PostCreate(i PostCreateInput) (*domain.Post, error) {
 	if _, valid := i.Validate(); !valid {
-		panic("First you need validate input")
+		return nil, errors.New("first you need validate input")
 	}
 
 	postRepo := ps.postRepo
@@ -87,16 +88,16 @@ func (ps *PostService) PostGet(id int) (*domain.Post, error) {
 }
 
 // Post update functionality
-func (ps *PostService) GetPostUpdateInput() postUpdateInput {
-	return postUpdateInput{}
+func (ps *PostService) GetPostUpdateInput() PostUpdateInput {
+	return PostUpdateInput{}
 }
 
-type postUpdateInput struct {
+type PostUpdateInput struct {
 	Title       string `json:"title,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
-func (i *postUpdateInput) Validate() (map[string]interface{}, bool) {
+func (i *PostUpdateInput) Validate() (map[string]interface{}, bool) {
 	message := make(map[string]interface{})
 	valid := true
 
@@ -113,9 +114,9 @@ func (i *postUpdateInput) Validate() (map[string]interface{}, bool) {
 	return message, valid
 }
 
-func (ps *PostService) PostUpdate(id int, i postUpdateInput) (*domain.Post, error) {
+func (ps *PostService) PostUpdate(id int, i PostUpdateInput) (*domain.Post, error) {
 	if _, valid := i.Validate(); !valid {
-		panic("First you need validate input")
+		return nil, errors.New("first you need validate input")
 	}
 
 	postRepo := ps.postRepo

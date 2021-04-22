@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"time"
 
 	"github.com/osetr/app/internal/domain"
@@ -15,10 +16,10 @@ const (
 
 // Auth service implementation
 type IAuthService interface {
-	GetSignUpInput() signUpInput
-	SignUp(signUpInput) (map[string]interface{}, error)
-	GetSignInInput() signInInput
-	SignIn(signInInput) (map[string]interface{}, error)
+	GetSignUpInput() SignUpInput
+	SignUp(SignUpInput) (map[string]interface{}, error)
+	GetSignInInput() SignInInput
+	SignIn(SignInInput) (map[string]interface{}, error)
 }
 
 type AuthService struct {
@@ -32,17 +33,17 @@ func NewAuthService(userRepo repository.IUserRepository) IAuthService {
 }
 
 // Sign-up functionality
-func (*AuthService) GetSignUpInput() signUpInput {
-	return signUpInput{}
+func (*AuthService) GetSignUpInput() SignUpInput {
+	return SignUpInput{}
 }
 
-type signUpInput struct {
+type SignUpInput struct {
 	Name     string `json:"name,omitempty"`
 	Email    string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
 }
 
-func (i signUpInput) Validate() (map[string]interface{}, bool) {
+func (i SignUpInput) Validate() (map[string]interface{}, bool) {
 	message := make(map[string]interface{})
 	valid := true
 
@@ -65,9 +66,9 @@ func (i signUpInput) Validate() (map[string]interface{}, bool) {
 	return message, valid
 }
 
-func (as *AuthService) SignUp(i signUpInput) (map[string]interface{}, error) {
+func (as *AuthService) SignUp(i SignUpInput) (map[string]interface{}, error) {
 	if _, valid := i.Validate(); !valid {
-		panic("First you need validate input")
+		return nil, errors.New("first you need validate input")
 	}
 
 	postRepo := as.userRepo
@@ -81,16 +82,16 @@ func (as *AuthService) SignUp(i signUpInput) (map[string]interface{}, error) {
 }
 
 // Sign-in functionality
-func (as *AuthService) GetSignInInput() signInInput {
-	return signInInput{}
+func (as *AuthService) GetSignInInput() SignInInput {
+	return SignInInput{}
 }
 
-type signInInput struct {
+type SignInInput struct {
 	Email    string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
 }
 
-func (i signInInput) Validate() (map[string]interface{}, bool) {
+func (i SignInInput) Validate() (map[string]interface{}, bool) {
 	message := make(map[string]interface{})
 	valid := true
 
@@ -108,7 +109,11 @@ func (i signInInput) Validate() (map[string]interface{}, bool) {
 	return message, valid
 }
 
-func (as *AuthService) SignIn(i signInInput) (map[string]interface{}, error) {
+func (as *AuthService) SignIn(i SignInInput) (map[string]interface{}, error) {
+	if _, valid := i.Validate(); !valid {
+		return nil, errors.New("first you need validate input")
+	}
+
 	userRepo := as.userRepo
 	u, _ := userRepo.SignInUser(i.Email, auth.GeneratePasswordHash(i.Password))
 	token, err := auth.NewJWTToken(u.Id, secretKey, tokenTTL)
